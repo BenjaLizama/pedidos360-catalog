@@ -1,3 +1,6 @@
 spring:
   application:
     name: ms-catalog
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
