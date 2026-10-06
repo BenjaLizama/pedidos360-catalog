@@ -10,11 +10,13 @@ spring:
     aws:
       region:
         static: ${AWS_REGION:us-east-1}
+
       credentials:
         access-key: ${AWS_ACCESS_KEY_ID:test}
         secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+
       sqs:
-        endpoint: ${AWS_SQS_ENDPOINT:http://localhost:4566}
+        endpoint: ${AWS_SQS_ENDPOINT:http://localhost:4567}
 
   security:
     oauth2:
