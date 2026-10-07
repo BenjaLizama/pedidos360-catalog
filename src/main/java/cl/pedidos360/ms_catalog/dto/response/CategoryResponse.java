@@ -20,7 +20,7 @@ public record CategoryResponse(
         UUID id,
         String name,
         String description,
-        Boolean active,
+        boolean active,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -25,19 +25,36 @@ public record StandardResponse<T>(
         String message,
         T data
 ) {
+
+    /**
+     * Crea una respuesta correspondiente a una operación de creación exitosa.
+     *
+     * @param message mensaje descriptivo de la operación
+     * @param data información del recurso creado
+     * @param <T> tipo de información contenida en la respuesta
+     * @return respuesta con estado HTTP 201 Created
+     */
     public static <T> StandardResponse<T> created(String message, T data) {
-        return new StandardResponse<>(HttpStatus.CREATED.value(), message, data);
-    }
-
-    public static <T> StandardResponse<T> ok(String message, T data) {
-        return new StandardResponse<>(HttpStatus.OK.value(), message, data);
-    }
-
-    public static <T> StandardResponse<T> noContent(String message) {
         return new StandardResponse<>(
-                HttpStatus.NO_CONTENT.value(),
+                HttpStatus.CREATED.value(),
                 message,
-                null
+                data
+        );
+    }
+
+    /**
+     * Crea una respuesta correspondiente a una operación exitosa.
+     *
+     * @param message mensaje descriptivo de la operación
+     * @param data información resultante de la operación
+     * @param <T> tipo de información contenida en la respuesta
+     * @return respuesta con estado HTTP 200 OK
+     */
+    public static <T> StandardResponse<T> ok(String message, T data) {
+        return new StandardResponse<>(
+                HttpStatus.OK.value(),
+                message,
+                data
         );
     }
 }
