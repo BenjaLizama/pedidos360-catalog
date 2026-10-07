@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,7 +20,7 @@ import java.math.BigDecimal;
 public class ProductEntity extends AuditableEntity {
 
     @Id
-    private String id;
+    private UUID id;
 
     @Indexed(unique = true)
     private String sku;

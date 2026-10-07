@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,9 +23,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class StockMovementEntity extends AuditableEntity {
 
     @Id
-    private String id;
+    private UUID id;
 
-    private String productId;
+    private UUID productId;
 
     private StockMovementType type;
 
@@ -36,5 +38,5 @@ public class StockMovementEntity extends AuditableEntity {
     private String reason;
 
     @Indexed
-    private String correlationId;
+    private UUID correlationId;
 }

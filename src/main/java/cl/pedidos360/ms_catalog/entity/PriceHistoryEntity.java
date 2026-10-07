@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -21,9 +22,9 @@ import java.math.BigDecimal;
 public class PriceHistoryEntity extends AuditableEntity {
 
     @Id
-    private String id;
+    private UUID id;
 
-    private String productId;
+    private UUID productId;
 
     private BigDecimal previousPrice;
 
@@ -31,5 +32,5 @@ public class PriceHistoryEntity extends AuditableEntity {
 
     private String reason;
 
-    private String correlationId;
+    private UUID correlationId;
 }

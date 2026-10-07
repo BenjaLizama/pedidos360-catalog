@@ -9,6 +9,8 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,7 +18,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class CategoryEntity extends AuditableEntity {
 
     @Id
-    private String id;
+    private UUID id;
 
     @Indexed(unique = true)
     private String name;
