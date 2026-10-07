@@ -35,7 +35,7 @@ public class PriceHistoryEntity extends AuditableEntity {
      * Identificador único del registro histórico.
      */
     @Id
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     /**
      * Identificador del producto cuyo precio fue modificado.

@@ -36,7 +36,7 @@ public class StockMovementEntity extends AuditableEntity {
      * Identificador único del movimiento.
      */
     @Id
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     /**
      * Identificador del producto afectado por el movimiento.
@@ -77,6 +77,5 @@ public class StockMovementEntity extends AuditableEntity {
      * <p>Permite relacionar el movimiento con logs, trazas distribuidas
      * y mensajes procesados desde otros microservicios.</p>
      */
-    @Indexed
     private UUID correlationId;
 }

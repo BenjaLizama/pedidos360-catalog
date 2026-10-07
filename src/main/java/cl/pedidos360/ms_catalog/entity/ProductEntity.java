@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -30,13 +31,17 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @Document(collection = "products")
+@CompoundIndex(
+        name = "category_status_idx",
+        def = "{'categoryId': 1, 'status': 1}"
+)
 public class ProductEntity extends AuditableEntity {
 
     /**
      * Identificador único del producto.
      */
     @Id
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     /**
      * Identificador comercial único del producto.
@@ -86,7 +91,7 @@ public class ProductEntity extends AuditableEntity {
      * Estado actual del producto dentro del catálogo.
      */
     @Indexed
-    private ProductStatus status;
+    private ProductStatus status = ProductStatus.ACTIVE;
 
     /**
      * Versión utilizada para control de concurrencia optimista.

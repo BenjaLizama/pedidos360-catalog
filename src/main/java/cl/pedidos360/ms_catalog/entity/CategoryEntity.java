@@ -31,15 +31,22 @@ public class CategoryEntity extends AuditableEntity {
      * Identificador único de la categoría.
      */
     @Id
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     /**
      * Nombre único de la categoría.
      *
-     * <p>Se utiliza un índice único para impedir que existan
-     * categorías con el mismo nombre.</p>
+     * <p>El índice utiliza una collation con nivel de comparación
+     * secundario para garantizar unicidad sin distinguir entre
+     * mayúsculas y minúsculas.</p>
+     *
+     * <p>Por ejemplo, los valores {@code Bebidas}, {@code bebidas}
+     * y {@code BEBIDAS} se consideran equivalentes.</p>
      */
-    @Indexed(unique = true)
+    @Indexed(
+            unique = true,
+            collation = "{ 'locale': 'es', 'strength': 2 }"
+    )
     private String name;
 
     /**
@@ -53,8 +60,7 @@ public class CategoryEntity extends AuditableEntity {
      * <p>La desactivación permite conservar la categoría y su historial
      * sin eliminar físicamente el documento de MongoDB.</p>
      */
-    @Indexed
-    private Boolean active;
+    private boolean active = true;
 
     /**
      * Versión utilizada para control de concurrencia optimista.
