@@ -5,6 +5,7 @@ import cl.pedidos360.ms_catalog.enums.ErrorCode;
 import cl.pedidos360.ms_catalog.mapper.ErrorResponseMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -19,15 +20,17 @@ import java.util.Map;
 
 /**
  * Manejador global de excepciones de la aplicación.
- * <p>
- * Centraliza el tratamiento de errores producidos por los controllers,
+ *
+ * <p>Centraliza el tratamiento de errores producidos por los controllers,
  * servicios y capa de persistencia, transformándolos en respuestas HTTP
- * consistentes mediante StandardErrorResponse.
- * <p>
- * Las excepciones de autenticación y autorización (401/403) son manejadas
- * directamente por Spring Security mediante SecurityAuthenticationEntryPoint
- * y SecurityAccessDeniedHandler.
+ * consistentes mediante {@link StandardErrorResponse}.</p>
+ *
+ * <p>Las excepciones de autenticación y autorización (401/403) son
+ * manejadas directamente por Spring Security mediante
+ * {@code SecurityAuthenticationEntryPoint} y
+ * {@code SecurityAccessDeniedHandler}.</p>
  */
+@Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
@@ -36,17 +39,21 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja errores cuando el recurso solicitado no existe.
-     * <p>
-     * Ejemplo:
-     * intentar consultar un producto o categoría inexistente.
-     * <p>
-     * HTTP 404 - NOT FOUND
+     *
+     * <p>HTTP 404 - NOT FOUND</p>
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<StandardErrorResponse> handleResourceNotFound(
             ResourceNotFoundException exception,
             HttpServletRequest request
     ) {
+
+        log.warn(
+                "Recurso no encontrado | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage()
+        );
 
         return buildResponse(
                 HttpStatus.NOT_FOUND,
@@ -58,17 +65,21 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja conflictos provocados por recursos que ya existen.
-     * <p>
-     * Ejemplo:
-     * intentar registrar un producto utilizando un SKU existente.
-     * <p>
-     * HTTP 409 - CONFLICT
+     *
+     * <p>HTTP 409 - CONFLICT</p>
      */
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<StandardErrorResponse> handleResourceAlreadyExists(
             ResourceAlreadyExistsException exception,
             HttpServletRequest request
     ) {
+
+        log.warn(
+                "Recurso ya existente | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage()
+        );
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -81,14 +92,21 @@ public class GlobalExceptionHandler {
     /**
      * Maneja operaciones que intentan utilizar una cantidad de stock
      * superior a la disponible.
-     * <p>
-     * HTTP 409 - CONFLICT
+     *
+     * <p>HTTP 409 - CONFLICT</p>
      */
     @ExceptionHandler(InsufficientStockException.class)
     public ResponseEntity<StandardErrorResponse> handleInsufficientStock(
             InsufficientStockException exception,
             HttpServletRequest request
     ) {
+
+        log.warn(
+                "Stock insuficiente | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage()
+        );
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -101,17 +119,21 @@ public class GlobalExceptionHandler {
     /**
      * Maneja operaciones que no están permitidas según las reglas
      * de negocio del catálogo.
-     * <p>
-     * Ejemplo:
-     * intentar modificar un recurso en un estado que no lo permite.
-     * <p>
-     * HTTP 409 - CONFLICT
+     *
+     * <p>HTTP 409 - CONFLICT</p>
      */
     @ExceptionHandler(InvalidOperationException.class)
     public ResponseEntity<StandardErrorResponse> handleInvalidOperation(
             InvalidOperationException exception,
             HttpServletRequest request
     ) {
+
+        log.warn(
+                "Operación inválida | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage()
+        );
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -123,14 +145,22 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja excepciones generales relacionadas con reglas de negocio.
-     * <p>
-     * HTTP 409 - CONFLICT
+     *
+     * <p>HTTP 409 - CONFLICT</p>
      */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<StandardErrorResponse> handleBusinessException(
             BusinessException exception,
             HttpServletRequest request
     ) {
+
+        log.warn(
+                "Error de negocio | path={} | method={} | code={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getErrorCode(),
+                exception.getMessage()
+        );
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -143,46 +173,37 @@ public class GlobalExceptionHandler {
     /**
      * Maneja conflictos producidos por concurrencia optimista.
      *
-     * <p>Ocurre cuando una entidad fue modificada por otro proceso
-     * después de haber sido consultada y antes de intentar guardar
-     * los cambios.</p>
+     * <p>Ocurre cuando otro proceso modifica el mismo documento
+     * después de que la solicitud actual lo haya leído.</p>
      *
-     * @param exception excepción de concurrencia optimista
-     * @param request solicitud HTTP actual
-     * @return respuesta HTTP 409 Conflict
+     * <p>HTTP 409 - CONFLICT</p>
      */
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<StandardErrorResponse> handleOptimisticLockingFailure(
             OptimisticLockingFailureException exception,
             HttpServletRequest request
     ) {
-        StandardErrorResponse response =
-                errorResponseMapper.toResponse(
-                        HttpStatus.CONFLICT,
-                        ErrorCode.INVALID_OPERATION,
-                        "El recurso fue modificado por otro proceso. "
-                                + "Vuelve a consultar el recurso e inténtalo nuevamente.",
-                        request
-                );
 
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(response);
+        log.warn(
+                "Conflicto de concurrencia optimista | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage()
+        );
+
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.OPTIMISTIC_LOCK_CONFLICT,
+                "El recurso fue modificado por otro proceso. "
+                        + "Vuelve a consultar el recurso e inténtalo nuevamente.",
+                request
+        );
     }
 
     /**
-     * Maneja errores producidos por las validaciones de Bean Validation
-     * utilizadas mediante @Valid.
-     * <p>
-     * Construye un mapa con los errores asociados a cada campo del request.
-     * <p>
-     * Ejemplo:
-     * {
-     *     "name": "El nombre es obligatorio.",
-     *     "price": "El precio debe ser mayor a cero."
-     * }
-     * <p>
-     * HTTP 400 - BAD REQUEST
+     * Maneja errores producidos por las validaciones de Bean Validation.
+     *
+     * <p>HTTP 400 - BAD REQUEST</p>
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<StandardErrorResponse> handleValidation(
@@ -201,6 +222,13 @@ public class GlobalExceptionHandler {
                         )
                 );
 
+        log.warn(
+                "Error de validación | path={} | method={} | errors={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                validationErrors
+        );
+
         StandardErrorResponse response =
                 errorResponseMapper.toValidationResponse(
                         validationErrors,
@@ -213,13 +241,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Maneja errores producidos cuando un parámetro de la petición
-     * no puede convertirse al tipo esperado por el controller.
-     * <p>
-     * Ejemplo:
-     * enviar "abc" como ID cuando el endpoint espera un UUID.
-     * <p>
-     * HTTP 400 - BAD REQUEST
+     * Maneja errores producidos cuando un parámetro no puede convertirse
+     * al tipo esperado por el controller.
+     *
+     * <p>HTTP 400 - BAD REQUEST</p>
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<StandardErrorResponse> handleTypeMismatch(
@@ -232,6 +257,14 @@ public class GlobalExceptionHandler {
                 exception.getName()
         );
 
+        log.warn(
+                "Parámetro inválido | path={} | method={} | parameter={} | value={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getName(),
+                exception.getValue()
+        );
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.VALIDATION_ERROR,
@@ -242,20 +275,24 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja errores de integridad provenientes de MongoDB.
-     * <p>
-     * Principalmente permite transformar errores producidos por índices
-     * únicos en una respuesta HTTP controlada.
-     * <p>
-     * Ejemplo:
-     * intentar insertar un SKU que ya existe.
-     * <p>
-     * HTTP 409 - CONFLICT
+     *
+     * <p>Principalmente permite transformar errores producidos por
+     * índices únicos en una respuesta HTTP controlada.</p>
+     *
+     * <p>HTTP 409 - CONFLICT</p>
      */
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<StandardErrorResponse> handleDuplicateKey(
             DuplicateKeyException exception,
             HttpServletRequest request
     ) {
+
+        log.warn(
+                "Conflicto de clave duplicada | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage()
+        );
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -267,20 +304,28 @@ public class GlobalExceptionHandler {
 
     /**
      * Fallback para excepciones que no fueron manejadas explícitamente.
-     * <p>
-     * Evita exponer detalles internos de Spring, MongoDB u otras
-     * dependencias al cliente.
-     * <p>
-     * Los detalles técnicos pueden ser registrados posteriormente
-     * mediante el sistema de logging y observabilidad.
-     * <p>
-     * HTTP 500 - INTERNAL SERVER ERROR
+     *
+     * <p>Evita exponer detalles internos de Spring, MongoDB u otras
+     * dependencias al cliente.</p>
+     *
+     * <p>Los detalles técnicos completos se registran mediante logging
+     * para facilitar el diagnóstico.</p>
+     *
+     * <p>HTTP 500 - INTERNAL SERVER ERROR</p>
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<StandardErrorResponse> handleUnexpectedException(
             Exception exception,
             HttpServletRequest request
     ) {
+
+        log.error(
+                "Error inesperado | path={} | method={} | message={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                exception.getMessage(),
+                exception
+        );
 
         StandardErrorResponse response =
                 errorResponseMapper.toInternalServerError(
@@ -296,9 +341,6 @@ public class GlobalExceptionHandler {
     /**
      * Construye una respuesta estándar para las excepciones controladas
      * de la aplicación.
-     * <p>
-     * Delega la transformación al ErrorResponseMapper para evitar
-     * duplicar la construcción de StandardErrorResponse en cada handler.
      */
     private ResponseEntity<StandardErrorResponse> buildResponse(
             HttpStatus status,

@@ -41,5 +41,12 @@ public enum ErrorCode {
      * Ocurrió un error inesperado no contemplado por las excepciones
      * controladas de la aplicación.
      */
-    INTERNAL_SERVER_ERROR
+    INTERNAL_SERVER_ERROR,
+
+    /**
+     * Indica que el recurso fue modificado por otro proceso
+     * después de haber sido leído, provocando un conflicto
+     * de concurrencia optimista.
+     */
+    OPTIMISTIC_LOCK_CONFLICT
 }

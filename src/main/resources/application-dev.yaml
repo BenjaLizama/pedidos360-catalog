@@ -2,9 +2,8 @@ server:
   port: ${SERVER_PORT:8081}
 
 spring:
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27018/pedidos360_catalog}
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/pedidos360_catalog?replicaSet=rs0}
 
   cloud:
     aws:
