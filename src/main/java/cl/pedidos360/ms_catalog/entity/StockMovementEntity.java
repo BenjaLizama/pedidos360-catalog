@@ -12,6 +12,16 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.UUID;
 
+/**
+ * Documento que representa un movimiento de inventario de un producto.
+ *
+ * <p>Cada modificación relevante del stock genera un registro histórico
+ * que permite conocer cómo evolucionó el inventario y cuál fue el motivo
+ * de cada operación.</p>
+ *
+ * <p>Extiende {@link AuditableEntity} para registrar automáticamente
+ * quién realizó la operación y cuándo ocurrió.</p>
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,21 +32,51 @@ import java.util.UUID;
 )
 public class StockMovementEntity extends AuditableEntity {
 
+    /**
+     * Identificador único del movimiento.
+     */
     @Id
     private UUID id;
 
+    /**
+     * Identificador del producto afectado por el movimiento.
+     */
     private UUID productId;
 
+    /**
+     * Tipo de operación que originó el movimiento de inventario.
+     */
     private StockMovementType type;
 
+    /**
+     * Cantidad involucrada en el movimiento.
+     *
+     * <p>La cantidad representa siempre una magnitud positiva.
+     * El tipo de movimiento determina el significado de la operación.</p>
+     */
     private Integer quantity;
 
+    /**
+     * Stock disponible antes de ejecutar la operación.
+     */
     private Integer previousStock;
 
+    /**
+     * Stock resultante después de ejecutar la operación.
+     */
     private Integer resultingStock;
 
+    /**
+     * Motivo asociado al movimiento de inventario.
+     */
     private String reason;
 
+    /**
+     * Identificador de correlación de la operación.
+     *
+     * <p>Permite relacionar el movimiento con logs, trazas distribuidas
+     * y mensajes procesados desde otros microservicios.</p>
+     */
     @Indexed
     private UUID correlationId;
 }
