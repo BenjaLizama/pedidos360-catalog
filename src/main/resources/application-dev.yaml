@@ -4,7 +4,7 @@ server:
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/pedidos360_catalog}
+      uri: ${MONGODB_URI:mongodb://localhost:27018/pedidos360_catalog}
 
   cloud:
     aws:

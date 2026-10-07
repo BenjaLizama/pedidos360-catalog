@@ -6,6 +6,7 @@ import cl.pedidos360.ms_catalog.mapper.ErrorResponseMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -137,6 +138,36 @@ public class GlobalExceptionHandler {
                 exception.getMessage(),
                 request
         );
+    }
+
+    /**
+     * Maneja conflictos producidos por concurrencia optimista.
+     *
+     * <p>Ocurre cuando una entidad fue modificada por otro proceso
+     * después de haber sido consultada y antes de intentar guardar
+     * los cambios.</p>
+     *
+     * @param exception excepción de concurrencia optimista
+     * @param request solicitud HTTP actual
+     * @return respuesta HTTP 409 Conflict
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<StandardErrorResponse> handleOptimisticLockingFailure(
+            OptimisticLockingFailureException exception,
+            HttpServletRequest request
+    ) {
+        StandardErrorResponse response =
+                errorResponseMapper.toResponse(
+                        HttpStatus.CONFLICT,
+                        ErrorCode.INVALID_OPERATION,
+                        "El recurso fue modificado por otro proceso. "
+                                + "Vuelve a consultar el recurso e inténtalo nuevamente.",
+                        request
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
     }
 
     /**

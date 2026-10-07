@@ -1,5 +1,7 @@
 package cl.pedidos360.ms_catalog.audit;
 
+import cl.pedidos360.ms_catalog.security.CurrentUserProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,7 +30,10 @@ import java.util.UUID;
  * auditoría sin asociar un usuario.</p>
  */
 @Component
+@RequiredArgsConstructor
 public class AuditorAwareImpl implements AuditorAware<UUID> {
+
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Obtiene el identificador del usuario actualmente autenticado.
@@ -40,17 +45,12 @@ public class AuditorAwareImpl implements AuditorAware<UUID> {
      */
     @Override
     public Optional<UUID> getCurrentAuditor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken
-        ) {
+        try {
+            return Optional.of(
+                    currentUserProvider.getCurrentUserId()
+            );
+        } catch (IllegalStateException | IllegalArgumentException exception) {
             return Optional.empty();
         }
-
-        return Optional.of(
-                UUID.fromString(authentication.getName())
-        );
     }
 }
