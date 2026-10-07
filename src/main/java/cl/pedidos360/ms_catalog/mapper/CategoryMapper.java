@@ -52,7 +52,7 @@ public class CategoryMapper {
                 category.getId(),
                 category.getName(),
                 category.getDescription(),
-                category.getActive(),
+                category.isActive(),
                 category.getCreatedAt(),
                 category.getUpdatedAt()
         );
