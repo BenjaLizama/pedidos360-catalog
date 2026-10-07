@@ -37,7 +37,11 @@ public record ProductCreateRequest(
         String description,
 
         @NotNull(message = "El precio es obligatorio.")
-        @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a cero.")
+        @DecimalMin(
+                value = "0.0",
+                inclusive = false,
+                message = "El precio debe ser mayor a cero."
+        )
         BigDecimal price,
 
         @NotNull(message = "El stock es obligatorio.")
