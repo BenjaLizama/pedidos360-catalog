@@ -1,0 +1,10 @@
+package cl.pedidos360.ms_catalog.enums;
+
+public enum ErrorCode {
+    RESOURCE_NOT_FOUND,
+    RESOURCE_ALREADY_EXISTS,
+    INSUFFICIENT_STOCK,
+    INVALID_OPERATION,
+    VALIDATION_ERROR,
+    INTERNAL_SERVER_ERROR
+}
