@@ -33,6 +33,8 @@ public class ProductEntity extends AuditableEntity {
 
     private Integer stock;
 
+    private UUID categoryId;
+
     @Indexed
     private ProductStatus status;
 

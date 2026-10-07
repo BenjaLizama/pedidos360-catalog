@@ -10,8 +10,8 @@ public record PriceHistoryResponse(
         BigDecimal previousPrice,
         BigDecimal newPrice,
         String reason,
-        String correlationId,
+        UUID correlationId,
         Instant createdAt,
-        String createdBy
+        UUID createdBy
 ) {
 }

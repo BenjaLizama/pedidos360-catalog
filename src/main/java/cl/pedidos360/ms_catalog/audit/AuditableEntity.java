@@ -8,6 +8,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,11 +18,11 @@ public abstract class AuditableEntity {
     private Instant createdAt;
 
     @CreatedBy
-    private String createdBy;
+    private UUID createdBy;
 
     @LastModifiedDate
     private Instant updatedAt;
 
     @LastModifiedBy
-    private String updatedBy;
+    private UUID updatedBy;
 }

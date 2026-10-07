@@ -13,8 +13,8 @@ public record StockMovementResponse(
         Integer previousStock,
         Integer resultingStock,
         String reason,
-        String correlationId,
+        UUID correlationId,
         Instant createdAt,
-        String createdBy
+        UUID createdBy
 ) {
 }
