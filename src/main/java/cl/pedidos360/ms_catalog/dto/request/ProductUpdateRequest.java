@@ -6,6 +6,18 @@ import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
+/**
+ * Datos permitidos para actualizar la información descriptiva
+ * de un producto existente.
+ *
+ * <p>El SKU, precio, stock y estado no forman parte de esta operación.
+ * Cada uno dispone de operaciones específicas para mantener separadas
+ * las responsabilidades y reglas de negocio.</p>
+ *
+ * @param name nuevo nombre del producto
+ * @param description nueva descripción del producto
+ * @param categoryId identificador de la nueva categoría asociada
+ */
 public record ProductUpdateRequest(
 
         @NotBlank(message = "El nombre es obligatorio.")

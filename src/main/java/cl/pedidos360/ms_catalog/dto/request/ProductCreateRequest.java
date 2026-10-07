@@ -9,6 +9,20 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Datos necesarios para registrar un nuevo producto en el catálogo.
+ *
+ * <p>La creación establece la información comercial inicial y el stock
+ * inicial del producto. Las operaciones posteriores de precio, stock
+ * y estado utilizan requests específicos.</p>
+ *
+ * @param sku código único utilizado para identificar el producto
+ * @param name nombre del producto
+ * @param description descripción opcional del producto
+ * @param price precio inicial del producto
+ * @param stock stock inicial disponible
+ * @param categoryId identificador de la categoría asociada al producto
+ */
 public record ProductCreateRequest(
 
         @NotBlank(message = "El SKU es obligatorio.")

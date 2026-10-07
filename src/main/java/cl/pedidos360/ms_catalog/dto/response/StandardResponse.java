@@ -4,6 +4,20 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import org.springframework.http.HttpStatus;
 
+/**
+ * Estructura estándar utilizada para las respuestas exitosas de la API.
+ *
+ * <p>Permite mantener un formato uniforme para las operaciones que
+ * devuelven información al consumidor del microservicio.</p>
+ *
+ * <p>El campo {@code data} es genérico para permitir que la misma
+ * estructura sea utilizada con diferentes tipos de respuesta.</p>
+ *
+ * @param <T> tipo de información contenida en la respuesta
+ * @param status código HTTP asociado a la operación
+ * @param message mensaje descriptivo de la operación realizada
+ * @param data información resultante de la operación
+ */
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record StandardResponse<T>(
