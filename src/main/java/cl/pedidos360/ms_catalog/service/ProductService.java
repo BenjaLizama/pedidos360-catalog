@@ -1,7 +1,13 @@
 package cl.pedidos360.ms_catalog.service;
 
-import cl.pedidos360.ms_catalog.dto.request.*;
+import cl.pedidos360.ms_catalog.dto.request.ProductCreateRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductPriceUpdateRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductRestockRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductStatusUpdateRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductStockUpdateRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductUpdateRequest;
 import cl.pedidos360.ms_catalog.dto.response.ProductResponse;
+import cl.pedidos360.ms_catalog.enums.ProductStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -13,11 +19,7 @@ import java.util.UUID;
  *
  * <p>Centraliza las operaciones de creación, consulta, actualización
  * y eliminación lógica de productos, además de las operaciones
- * específicas relacionadas con el inventario.</p>
- *
- * <p>Las modificaciones de precio y las operaciones derivadas de ventas
- * pueden ser gestionadas mediante flujos específicos, manteniendo
- * separadas las responsabilidades de cada operación.</p>
+ * específicas relacionadas con precio e inventario.</p>
  */
 public interface ProductService {
 
@@ -30,14 +32,12 @@ public interface ProductService {
     ProductResponse create(ProductCreateRequest request);
 
     /**
-     * Elimina lógicamente un producto.
-     *
-     * <p>El producto permanece almacenado para conservar su trazabilidad
-     * e historial.</p>
+     * Obtiene un producto mediante su identificador.
      *
      * @param id identificador único del producto
+     * @return información del producto encontrado
      */
-    void delete(UUID id);
+    ProductResponse findById(UUID id);
 
     /**
      * Busca productos aplicando filtros opcionales y paginación.
@@ -51,7 +51,7 @@ public interface ProductService {
     Page<ProductResponse> search(
             String name,
             UUID categoryId,
-            String status,
+            ProductStatus status,
             Pageable pageable
     );
 
@@ -80,6 +80,19 @@ public interface ProductService {
     );
 
     /**
+     * Actualiza el precio de un producto y registra
+     * el cambio correspondiente en su historial.
+     *
+     * @param id identificador único del producto
+     * @param request nuevo precio y motivo del cambio
+     * @return información actualizada del producto
+     */
+    ProductResponse updatePrice(
+            UUID id,
+            ProductPriceUpdateRequest request
+    );
+
+    /**
      * Realiza un ajuste manual sobre el inventario de un producto.
      *
      * @param id identificador único del producto
@@ -103,4 +116,14 @@ public interface ProductService {
             UUID id,
             ProductRestockRequest request
     );
+
+    /**
+     * Elimina lógicamente un producto.
+     *
+     * <p>El producto permanece almacenado para conservar su trazabilidad
+     * e historial.</p>
+     *
+     * @param id identificador único del producto
+     */
+    void delete(UUID id);
 }
