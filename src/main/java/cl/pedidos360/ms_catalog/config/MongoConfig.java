@@ -10,8 +10,4 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing;
 @EnableMongoAuditing
 public class MongoConfig {
 
-    @Bean
-    public AuditorAware<String> auditorAware(AuditorAwareImpl auditorAwareImpl) {
-        return auditorAwareImpl;
-    }
 }
