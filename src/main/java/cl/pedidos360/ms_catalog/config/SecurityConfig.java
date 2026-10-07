@@ -15,6 +15,19 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Configuración de seguridad del microservicio de catálogo.
+ *
+ * <p>Configura la aplicación como un OAuth2 Resource Server que valida
+ * tokens JWT emitidos por un proveedor de identidad externo.</p>
+ *
+ * <p>La aplicación utiliza una arquitectura stateless, por lo que no
+ * mantiene sesiones HTTP de usuario.</p>
+ *
+ * <p>También define los recursos públicos, la autenticación requerida
+ * para los demás endpoints y el tratamiento personalizado de errores
+ * de autenticación y autorización.</p>
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -26,6 +39,11 @@ public class SecurityConfig {
     private final SecurityAuthenticationEntryPoint securityAuthenticationEntryPoint;
     private final SecurityAccessDeniedHandler securityAccessDeniedHandler;
 
+    /**
+     * Endpoints que pueden ser consultados sin autenticación.
+     *
+     * <p>Incluye endpoints de monitoreo y documentación de la API.</p>
+     */
     private static final String[] WHITE_LIST_URL = {
             "/actuator/health",
             "/actuator/info",
@@ -34,11 +52,37 @@ public class SecurityConfig {
             "/v3/api-docs/**"
     };
 
+    /**
+     * Endpoints públicos del catálogo.
+     *
+     * <p>La consulta de productos mediante HTTP GET puede realizarse
+     * sin autenticación. Las operaciones de modificación permanecen
+     * protegidas.</p>
+     */
     private static final String[] PUBLIC_CATALOG_URL = {
             "/api/v1/catalog/products",
             "/api/v1/catalog/products/**"
     };
 
+    /**
+     * Construye la cadena de filtros de seguridad utilizada por Spring
+     * Security.
+     *
+     * <p>La configuración:</p>
+     * <ul>
+     *     <li>Deshabilita CSRF debido a que la API es stateless.</li>
+     *     <li>Deshabilita el uso de sesiones HTTP.</li>
+     *     <li>Permite acceso público a los endpoints definidos.</li>
+     *     <li>Requiere autenticación para cualquier otro recurso.</li>
+     *     <li>Utiliza JWT como mecanismo de autenticación.</li>
+     *     <li>Utiliza handlers personalizados para errores 401 y 403.</li>
+     * </ul>
+     *
+     * @param httpSecurity configuración HTTP de Spring Security
+     * @return cadena de filtros de seguridad configurada
+     * @throws Exception si ocurre un error durante la construcción
+     *                   de la configuración de seguridad
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
