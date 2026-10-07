@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Implementación de las consultas dinámicas de productos.
@@ -42,30 +43,47 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
      * Cuando se proporcionan varios filtros, estos se combinan mediante
      * una condición lógica AND.</p>
      *
-     * <p>La búsqueda por nombre no distingue entre mayúsculas y minúsculas.
-     * Una vez construida la consulta, se obtiene el total de registros
-     * coincidentes y posteriormente se aplica la paginación.</p>
+     * <p>La búsqueda por nombre no distingue entre mayúsculas y minúsculas
+     * y trata el texto recibido como contenido literal, evitando que los
+     * caracteres especiales de una expresión regular modifiquen la consulta.</p>
      *
-     * @param name texto utilizado para buscar productos por nombre
-     * @param categoryId identificador de la categoría utilizada como filtro
-     * @param status estado utilizado como filtro
+     * <p>La consulta obtiene el total de registros coincidentes antes de
+     * aplicar la paginación, permitiendo construir correctamente un
+     * {@link Page}.</p>
+     *
+     * @param name texto utilizado para buscar productos por nombre;
+     *             puede ser {@code null} o estar vacío
+     * @param categoryId identificador de la categoría utilizada como filtro;
+     *                   puede ser {@code null}
+     * @param status estado utilizado como filtro;
+     *               puede ser {@code null}
      * @param pageable configuración de paginación y ordenamiento
      * @return página de productos que cumplen los filtros proporcionados
      */
     @Override
-    public Page<ProductEntity> search(String name, UUID categoryId, ProductStatus status, Pageable pageable) {
+    public Page<ProductEntity> search(
+            String name,
+            UUID categoryId,
+            ProductStatus status,
+            Pageable pageable
+    ) {
         List<Criteria> criteriaList = new ArrayList<>();
 
         /*
          * Agrega el filtro por nombre cuando se proporciona un valor.
          *
-         * La búsqueda utiliza una expresión regular sin distinción
+         * Pattern.quote() evita que caracteres especiales del texto
+         * sean interpretados como operadores de expresión regular.
+         *
+         * El indicador "i" permite realizar la búsqueda sin distinguir
          * entre mayúsculas y minúsculas.
          */
         if (name != null && !name.isBlank()) {
+            String searchTerm = Pattern.quote(name.trim());
+
             criteriaList.add(
                     Criteria.where("name")
-                            .regex(name.trim(), "i")
+                            .regex(searchTerm, "i")
             );
         }
 
@@ -106,8 +124,9 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
 
         /*
          * Obtiene la cantidad total de documentos que cumplen los filtros.
-         * Este valor es necesario para construir correctamente la respuesta
-         * paginada.
+         *
+         * Este valor permite construir correctamente la información
+         * de paginación del objeto Page.
          */
         long total = mongoTemplate.count(
                 query,
@@ -115,11 +134,13 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
         );
 
         /*
-         * Aplica la configuración de paginación y ordenamiento antes
-         * de ejecutar la consulta definitiva.
+         * Aplica la paginación y el ordenamiento definidos por el cliente.
          */
         query.with(pageable);
 
+        /*
+         * Ejecuta la consulta paginada.
+         */
         List<ProductEntity> products = mongoTemplate.find(
                 query,
                 ProductEntity.class
