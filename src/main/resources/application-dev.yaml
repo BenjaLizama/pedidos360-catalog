@@ -2,8 +2,14 @@ server:
   port: ${SERVER_PORT:8081}
 
 spring:
+  output:
+    ansi:
+      enabled: ALWAYS
+
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017/pedidos360_catalog?replicaSet=rs0}
+    representation:
+      uuid: standard
 
   cloud:
     aws:
@@ -44,3 +50,12 @@ springdoc:
 
   swagger-ui:
     path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    cl.pedidos360.ms_catalog: INFO
+    org.springframework: WARN
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.mongodb.driver: WARN
