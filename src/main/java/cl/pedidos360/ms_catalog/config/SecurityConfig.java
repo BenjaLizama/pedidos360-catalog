@@ -61,7 +61,8 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_CATALOG_URL = {
             "/api/v1/catalog/products",
-            "/api/v1/catalog/products/**"
+            "/api/v1/catalog/products/**",
+            "/api/v1/categories"
     };
 
     /**
