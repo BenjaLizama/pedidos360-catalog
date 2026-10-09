@@ -77,4 +77,12 @@ public class StockMovementEntity extends AuditableEntity {
      * y mensajes procesados desde otros microservicios.</p>
      */
     private UUID correlationId;
+
+    /**
+     * Identificador del usuario que realizó el movimiento de stock.
+     *
+     * <p>Proporciona auditoría sobre quién fue responsable de la
+     * operación de inventario.</p>
+     */
+    private UUID executedBy;
 }
