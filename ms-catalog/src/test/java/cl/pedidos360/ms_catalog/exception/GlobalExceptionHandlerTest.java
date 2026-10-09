@@ -15,8 +15,8 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -163,10 +163,9 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleOptimisticLockingFailureShouldReturnConflict() {
         OptimisticLockingFailureException exception =
-                mock(OptimisticLockingFailureException.class);
-
-        when(exception.getMessage())
-                .thenReturn("Conflicto de concurrencia");
+                new OptimisticLockingFailureException(
+                        "Conflicto de concurrencia"
+                );
 
         var response = globalExceptionHandler
                 .handleOptimisticLockingFailure(exception, request);
@@ -200,7 +199,8 @@ class GlobalExceptionHandlerTest {
                 )
         );
 
-        when(exception.getBindingResult()).thenReturn(bindingResult);
+        when(exception.getBindingResult())
+                .thenReturn(bindingResult);
 
         var response = globalExceptionHandler
                 .handleValidation(exception, request);
@@ -218,8 +218,8 @@ class GlobalExceptionHandlerTest {
         MethodArgumentTypeMismatchException exception =
                 mock(MethodArgumentTypeMismatchException.class);
 
-        when(exception.getName()).thenReturn("productId");
-        when(exception.getValue()).thenReturn("uuid-invalido");
+        when(exception.getName())
+                .thenReturn("productId");
 
         var response = globalExceptionHandler
                 .handleTypeMismatch(exception, request);
@@ -237,10 +237,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleDuplicateKeyShouldReturnConflict() {
         DuplicateKeyException exception =
-                mock(DuplicateKeyException.class);
-
-        when(exception.getMessage())
-                .thenReturn("Duplicate key");
+                new DuplicateKeyException("Duplicate key");
 
         var response = globalExceptionHandler
                 .handleDuplicateKey(exception, request);
@@ -257,10 +254,8 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleUnexpectedExceptionShouldReturnInternalServerError() {
-        Exception exception = mock(Exception.class);
-
-        when(exception.getMessage())
-                .thenReturn("Database unavailable");
+        Exception exception =
+                new RuntimeException("Database unavailable");
 
         StandardErrorResponse errorResponse =
                 mock(StandardErrorResponse.class);
