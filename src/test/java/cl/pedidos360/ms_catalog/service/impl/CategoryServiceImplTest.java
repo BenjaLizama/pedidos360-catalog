@@ -25,8 +25,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
@@ -65,6 +74,10 @@ class CategoryServiceImplTest {
                 .thenReturn(correlationId);
     }
 
+    // ---------------------------------------------------------
+    // CREATE
+    // ---------------------------------------------------------
+
     @Test
     void create_shouldSaveCategoryWhenNameDoesNotExist() {
         CategoryCreateRequest request =
@@ -92,17 +105,14 @@ class CategoryServiceImplTest {
         when(categoryMapper.toResponse(savedCategory))
                 .thenReturn(expectedResponse);
 
-        CategoryResponse response = categoryService.create(request);
+        CategoryResponse result = categoryService.create(request);
 
-        assertSame(expectedResponse, response);
+        assertSame(expectedResponse, result);
 
         verify(categoryRepository)
                 .existsByNameIgnoreCase("Electrónica");
-
         verify(categoryRepository).save(category);
-
         verify(categoryMapper).toEntity(request);
-
         verify(categoryMapper).toResponse(savedCategory);
     }
 
@@ -127,6 +137,10 @@ class CategoryServiceImplTest {
         verifyNoInteractions(categoryMapper);
     }
 
+    // ---------------------------------------------------------
+    // FIND ALL
+    // ---------------------------------------------------------
+
     @Test
     void findAll_shouldReturnMappedPage() {
         PageRequest pageable = PageRequest.of(0, 10);
@@ -144,16 +158,37 @@ class CategoryServiceImplTest {
         when(categoryMapper.toResponse(category))
                 .thenReturn(expectedResponse);
 
-        Page<CategoryResponse> response =
+        Page<CategoryResponse> result =
                 categoryService.findAll(pageable);
 
-        assertEquals(1, response.getTotalElements());
-        assertEquals(1, response.getContent().size());
-        assertSame(expectedResponse, response.getContent().get(0));
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1, result.getContent().size());
+        assertSame(expectedResponse, result.getContent().get(0));
 
         verify(categoryRepository).findAll(pageable);
         verify(categoryMapper).toResponse(category);
     }
+
+    @Test
+    void findAll_shouldReturnEmptyPageWhenThereAreNoCategories() {
+        PageRequest pageable = PageRequest.of(0, 10);
+
+        when(categoryRepository.findAll(pageable))
+                .thenReturn(Page.empty(pageable));
+
+        Page<CategoryResponse> result =
+                categoryService.findAll(pageable);
+
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getContent().size());
+
+        verify(categoryRepository).findAll(pageable);
+        verifyNoInteractions(categoryMapper);
+    }
+
+    // ---------------------------------------------------------
+    // FIND BY ID
+    // ---------------------------------------------------------
 
     @Test
     void findById_shouldReturnCategoryWhenItExists() {
@@ -167,10 +202,10 @@ class CategoryServiceImplTest {
         when(categoryMapper.toResponse(category))
                 .thenReturn(expectedResponse);
 
-        CategoryResponse response =
+        CategoryResponse result =
                 categoryService.findById(categoryId);
 
-        assertSame(expectedResponse, response);
+        assertSame(expectedResponse, result);
 
         verify(categoryRepository).findById(categoryId);
         verify(categoryMapper).toResponse(category);
@@ -189,6 +224,10 @@ class CategoryServiceImplTest {
         verify(categoryMapper, never())
                 .toResponse(any(CategoryEntity.class));
     }
+
+    // ---------------------------------------------------------
+    // UPDATE
+    // ---------------------------------------------------------
 
     @Test
     void update_shouldSaveChangesWhenNameRemainsTheSameIgnoringCase() {
@@ -209,21 +248,20 @@ class CategoryServiceImplTest {
         when(categoryRepository.save(category))
                 .thenReturn(category);
 
-        when(category.getId()).thenReturn(categoryId);
-
         when(categoryMapper.toResponse(category))
                 .thenReturn(expectedResponse);
 
-        CategoryResponse response =
+        CategoryResponse result =
                 categoryService.update(categoryId, request);
 
-        assertSame(expectedResponse, response);
+        assertSame(expectedResponse, result);
 
         verify(categoryRepository, never())
                 .existsByNameIgnoreCase(anyString());
 
         verify(categoryMapper).updateEntity(category, request);
         verify(categoryRepository).save(category);
+        verify(categoryMapper).toResponse(category);
     }
 
     @Test
@@ -253,6 +291,9 @@ class CategoryServiceImplTest {
 
         verify(categoryMapper, never())
                 .updateEntity(any(CategoryEntity.class), any());
+
+        verify(categoryMapper, never())
+                .toResponse(any(CategoryEntity.class));
     }
 
     @Test
@@ -270,7 +311,14 @@ class CategoryServiceImplTest {
 
         verify(categoryRepository, never())
                 .save(any(CategoryEntity.class));
+
+        verify(categoryMapper, never())
+                .updateEntity(any(CategoryEntity.class), any());
     }
+
+    // ---------------------------------------------------------
+    // UPDATE STATUS
+    // ---------------------------------------------------------
 
     @Test
     void updateStatus_shouldChangeActiveState() {
@@ -291,15 +339,13 @@ class CategoryServiceImplTest {
         when(categoryRepository.save(category))
                 .thenReturn(category);
 
-        when(category.getId()).thenReturn(categoryId);
-
         when(categoryMapper.toResponse(category))
                 .thenReturn(expectedResponse);
 
-        CategoryResponse response =
+        CategoryResponse result =
                 categoryService.updateStatus(categoryId, request);
 
-        assertSame(expectedResponse, response);
+        assertSame(expectedResponse, result);
 
         verify(category).setActive(false);
         verify(categoryRepository).save(category);
@@ -322,6 +368,10 @@ class CategoryServiceImplTest {
         verify(categoryRepository, never())
                 .save(any(CategoryEntity.class));
     }
+
+    // ---------------------------------------------------------
+    // DELETE
+    // ---------------------------------------------------------
 
     @Test
     void delete_shouldDeactivateCategoryInsteadOfDeletingIt() {
