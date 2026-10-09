@@ -26,7 +26,7 @@ public class PriceHistoryController implements PriceHistoryControllerDocs {
 
     @Override
     @GetMapping("/{productId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'OPERADOR')")
     public ResponseEntity<StandardResponse<Page<PriceHistoryResponse>>> findByProductId(
             @PathVariable UUID productId,
             @PageableDefault(size = 20) Pageable pageable
