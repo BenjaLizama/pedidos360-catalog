@@ -230,20 +230,24 @@ class CategoryServiceImplTest {
     // ---------------------------------------------------------
 
     @Test
-    void update_shouldSaveChangesWhenNameRemainsTheSameIgnoringCase() {
+    void update_shouldSaveChangesWhenNewNameDoesNotExist() {
         CategoryUpdateRequest request =
                 mock(CategoryUpdateRequest.class);
 
         CategoryEntity category = mock(CategoryEntity.class);
+
         CategoryResponse expectedResponse =
                 mock(CategoryResponse.class);
 
-        when(request.name()).thenReturn("ELECTRÓNICA");
+        when(request.name()).thenReturn("Deportes");
 
         when(categoryRepository.findById(categoryId))
                 .thenReturn(Optional.of(category));
 
         when(category.getName()).thenReturn("Electrónica");
+
+        when(categoryRepository.existsByNameIgnoreCase("Deportes"))
+                .thenReturn(false);
 
         when(categoryRepository.save(category))
                 .thenReturn(category);
@@ -256,11 +260,14 @@ class CategoryServiceImplTest {
 
         assertSame(expectedResponse, result);
 
-        verify(categoryRepository, never())
-                .existsByNameIgnoreCase(anyString());
+        verify(categoryRepository)
+                .existsByNameIgnoreCase("Deportes");
 
-        verify(categoryMapper).updateEntity(category, request);
+        verify(categoryMapper)
+                .updateEntity(category, request);
+
         verify(categoryRepository).save(category);
+
         verify(categoryMapper).toResponse(category);
     }
 
