@@ -18,8 +18,15 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PriceHistoryServiceImplTest {
@@ -69,6 +76,7 @@ class PriceHistoryServiceImplTest {
         Page<PriceHistoryResponse> response =
                 priceHistoryService.findByProductId(productId, pageable);
 
+        assertNotNull(response);
         assertEquals(1, response.getTotalElements());
         assertEquals(1, response.getContent().size());
         assertSame(expectedResponse, response.getContent().get(0));
@@ -135,11 +143,14 @@ class PriceHistoryServiceImplTest {
         Page<PriceHistoryResponse> response =
                 priceHistoryService.findByProductId(productId, pageable);
 
+        assertNotNull(response);
         assertEquals(1, response.getNumber());
         assertEquals(2, response.getSize());
         assertEquals(2, response.getNumberOfElements());
         assertEquals(5, response.getTotalElements());
         assertEquals(3, response.getTotalPages());
+        assertSame(firstResponse, response.getContent().get(0));
+        assertSame(secondResponse, response.getContent().get(1));
 
         verify(priceHistoryRepository)
                 .findByProductId(productId, pageable);
