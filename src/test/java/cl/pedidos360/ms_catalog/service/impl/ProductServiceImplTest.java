@@ -3,11 +3,15 @@ package cl.pedidos360.ms_catalog.service.impl;
 import cl.pedidos360.ms_catalog.dto.request.ProductCreateRequest;
 import cl.pedidos360.ms_catalog.dto.request.ProductPriceUpdateRequest;
 import cl.pedidos360.ms_catalog.dto.request.ProductRestockRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductStatusUpdateRequest;
 import cl.pedidos360.ms_catalog.dto.request.ProductStockUpdateRequest;
+import cl.pedidos360.ms_catalog.dto.request.ProductUpdateRequest;
+import cl.pedidos360.ms_catalog.dto.response.ProductResponse;
 import cl.pedidos360.ms_catalog.entity.CategoryEntity;
 import cl.pedidos360.ms_catalog.entity.PriceHistoryEntity;
 import cl.pedidos360.ms_catalog.entity.ProductEntity;
 import cl.pedidos360.ms_catalog.entity.StockMovementEntity;
+import cl.pedidos360.ms_catalog.enums.ProductStatus;
 import cl.pedidos360.ms_catalog.enums.StockAdjustmentOperation;
 import cl.pedidos360.ms_catalog.enums.StockMovementType;
 import cl.pedidos360.ms_catalog.exception.InsufficientStockException;
@@ -23,21 +27,36 @@ import cl.pedidos360.ms_catalog.repository.PriceHistoryRepository;
 import cl.pedidos360.ms_catalog.repository.ProductRepository;
 import cl.pedidos360.ms_catalog.repository.StockMovementRepository;
 import cl.pedidos360.ms_catalog.security.CurrentUserProvider;
-import cl.pedidos360.ms_catalog.dto.response.ProductResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceImplTest {
@@ -72,41 +91,82 @@ class ProductServiceImplTest {
     @InjectMocks
     private ProductServiceImpl productService;
 
-    private UUID productId;
-    private UUID categoryId;
-    private UUID userId;
-    private UUID correlationId;
+    private final UUID productId = UUID.randomUUID();
+    private final UUID categoryId = UUID.randomUUID();
+    private final UUID userId = UUID.randomUUID();
+    private final UUID correlationId = UUID.randomUUID();
+
+    private ProductEntity product;
+    private ProductResponse response;
 
     @BeforeEach
     void setUp() {
-        productId = UUID.randomUUID();
-        categoryId = UUID.randomUUID();
-        userId = UUID.randomUUID();
-        correlationId = UUID.randomUUID();
+        product = mock(ProductEntity.class);
+        response = mock(ProductResponse.class);
+
+        lenient()
+                .when(correlationIdProvider.getCorrelationId())
+                .thenReturn(correlationId);
 
         lenient()
                 .when(currentUserProvider.getCurrentUserId())
                 .thenReturn(userId);
 
         lenient()
-                .when(correlationIdProvider.getCorrelationId())
-                .thenReturn(correlationId);
+                .when(productRepository.save(any(ProductEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        lenient()
+                .when(productMapper.toResponse(any(ProductEntity.class)))
+                .thenReturn(response);
     }
+
+    /**
+     * Configura el mapper de movimientos para que devuelva
+     * una entidad válida cuando el servicio registra stock.
+     */
+    private void mockStockMovementMapper() {
+        when(stockMovementMapper.toEntity(
+                any(UUID.class),
+                any(StockMovementType.class),
+                anyInt(),
+                anyInt(),
+                anyInt(),
+                nullable(String.class),
+                any(UUID.class)
+        )).thenReturn(mock(StockMovementEntity.class));
+    }
+
+    /**
+     * Configura el mapper del historial de precios para que
+     * devuelva una entidad válida al cambiar el precio.
+     */
+    private void mockPriceHistoryMapper() {
+        when(priceHistoryMapper.toEntity(
+                any(UUID.class),
+                any(BigDecimal.class),
+                any(BigDecimal.class),
+                nullable(String.class),
+                any(UUID.class)
+        )).thenReturn(mock(PriceHistoryEntity.class));
+    }
+
+    // ---------------------------------------------------------
+    // CREATE
+    // ---------------------------------------------------------
 
     @Test
     void create_shouldCreateProductAndInitialStockMovement() {
         ProductCreateRequest request = new ProductCreateRequest(
                 "SKU-001",
                 "Teclado mecánico",
-                "Teclado de prueba",
+                "Teclado para gaming",
                 new BigDecimal("49990"),
                 10,
                 categoryId
         );
 
-        ProductEntity product = mock(ProductEntity.class);
-        ProductResponse expectedResponse = mock(ProductResponse.class);
-        StockMovementEntity movement = mock(StockMovementEntity.class);
+        mockStockMovementMapper();
 
         when(productRepository.existsBySku("SKU-001"))
                 .thenReturn(false);
@@ -114,19 +174,17 @@ class ProductServiceImplTest {
         when(productMapper.toEntity(request))
                 .thenReturn(product);
 
-        when(productRepository.save(product))
-                .thenReturn(product);
+        when(product.getStock()).thenReturn(10);
+        when(product.getId()).thenReturn(productId);
 
-        when(product.getId())
-                .thenReturn(productId);
+        ProductResponse result = productService.create(request);
 
-        when(product.getSku())
-                .thenReturn("SKU-001");
+        assertSame(response, result);
 
-        when(product.getStock())
-                .thenReturn(10);
+        verify(product).setCategoryId(categoryId);
+        verify(productRepository).save(product);
 
-        when(stockMovementMapper.toEntity(
+        verify(stockMovementMapper).toEntity(
                 productId,
                 StockMovementType.INITIAL_LOAD,
                 10,
@@ -134,38 +192,56 @@ class ProductServiceImplTest {
                 10,
                 "Carga inicial de stock.",
                 correlationId
-        )).thenReturn(movement);
+        );
 
-        when(productMapper.toResponse(product))
-                .thenReturn(expectedResponse);
+        verify(stockMovementRepository)
+                .save(any(StockMovementEntity.class));
 
-        ProductResponse response = productService.create(request);
+        verify(productMapper).toResponse(product);
+    }
 
-        assertSame(expectedResponse, response);
+    @Test
+    void create_shouldNotRegisterInitialMovementWhenStockIsZero() {
+        ProductCreateRequest request = new ProductCreateRequest(
+                "SKU-002",
+                "Mouse",
+                "Mouse óptico",
+                new BigDecimal("12990"),
+                0,
+                categoryId
+        );
+
+        when(productRepository.existsBySku("SKU-002"))
+                .thenReturn(false);
+
+        when(productMapper.toEntity(request))
+                .thenReturn(product);
+
+        when(product.getStock()).thenReturn(0);
+
+        ProductResponse result = productService.create(request);
+
+        assertSame(response, result);
 
         verify(productRepository).save(product);
-
-        verify(stockMovementRepository).save(movement);
-
-        verify(product).setCategoryId(categoryId);
+        verifyNoInteractions(stockMovementMapper);
+        verifyNoInteractions(stockMovementRepository);
     }
 
     @Test
     void create_shouldAssignDefaultCategoryWhenCategoryIsNull() {
         ProductCreateRequest request = new ProductCreateRequest(
-                "SKU-002",
-                "Mouse",
-                "Mouse de prueba",
-                new BigDecimal("12990"),
+                "SKU-003",
+                "Monitor",
+                "Monitor de 24 pulgadas",
+                new BigDecimal("149990"),
                 0,
                 null
         );
 
-        ProductEntity product = mock(ProductEntity.class);
         CategoryEntity defaultCategory = mock(CategoryEntity.class);
-        ProductResponse expectedResponse = mock(ProductResponse.class);
 
-        when(productRepository.existsBySku("SKU-002"))
+        when(productRepository.existsBySku("SKU-003"))
                 .thenReturn(false);
 
         when(productMapper.toEntity(request))
@@ -174,49 +250,32 @@ class ProductServiceImplTest {
         when(categoryRepository.findByNameIgnoreCase("OTROS"))
                 .thenReturn(Optional.of(defaultCategory));
 
-        when(defaultCategory.isActive())
-                .thenReturn(true);
+        when(defaultCategory.isActive()).thenReturn(true);
+        when(defaultCategory.getId()).thenReturn(categoryId);
+        when(product.getStock()).thenReturn(0);
 
-        when(defaultCategory.getId())
-                .thenReturn(categoryId);
+        ProductResponse result = productService.create(request);
 
-        when(productRepository.save(product))
-                .thenReturn(product);
-
-        when(product.getStock())
-                .thenReturn(0);
-
-        when(product.getId())
-                .thenReturn(productId);
-
-        when(product.getSku())
-                .thenReturn("SKU-002");
-
-        when(productMapper.toResponse(product))
-                .thenReturn(expectedResponse);
-
-        ProductResponse response = productService.create(request);
-
-        assertSame(expectedResponse, response);
+        assertSame(response, result);
 
         verify(product).setCategoryId(categoryId);
-
-        verify(stockMovementRepository, never())
-                .save(any(StockMovementEntity.class));
+        verify(categoryRepository).findByNameIgnoreCase("OTROS");
+        verify(productRepository).save(product);
+        verifyNoInteractions(stockMovementRepository);
     }
 
     @Test
     void create_shouldThrowWhenSkuAlreadyExists() {
         ProductCreateRequest request = new ProductCreateRequest(
-                "SKU-003",
-                "Monitor",
-                "Monitor de prueba",
-                new BigDecimal("159990"),
-                0,
+                "SKU-001",
+                "Teclado",
+                "Descripción",
+                new BigDecimal("49990"),
+                10,
                 categoryId
         );
 
-        when(productRepository.existsBySku("SKU-003"))
+        when(productRepository.existsBySku("SKU-001"))
                 .thenReturn(true);
 
         assertThrows(
@@ -228,6 +287,8 @@ class ProductServiceImplTest {
                 .save(any(ProductEntity.class));
 
         verifyNoInteractions(productMapper);
+        verifyNoInteractions(stockMovementMapper);
+        verifyNoInteractions(stockMovementRepository);
     }
 
     @Test
@@ -235,13 +296,11 @@ class ProductServiceImplTest {
         ProductCreateRequest request = new ProductCreateRequest(
                 "SKU-004",
                 "Audífonos",
-                "Audífonos de prueba",
+                "Audífonos inalámbricos",
                 new BigDecimal("29990"),
                 0,
                 null
         );
-
-        ProductEntity product = mock(ProductEntity.class);
 
         when(productRepository.existsBySku("SKU-004"))
                 .thenReturn(false);
@@ -259,24 +318,60 @@ class ProductServiceImplTest {
 
         verify(productRepository, never())
                 .save(any(ProductEntity.class));
+
+        verifyNoInteractions(stockMovementMapper);
+        verifyNoInteractions(stockMovementRepository);
     }
 
     @Test
-    void findById_shouldReturnProductWhenItExists() {
-        ProductEntity product = mock(ProductEntity.class);
-        ProductResponse expectedResponse = mock(ProductResponse.class);
+    void create_shouldThrowWhenDefaultCategoryIsInactive() {
+        ProductCreateRequest request = new ProductCreateRequest(
+                "SKU-005",
+                "Parlante",
+                "Parlante Bluetooth",
+                new BigDecimal("39990"),
+                0,
+                null
+        );
 
+        CategoryEntity inactiveCategory = mock(CategoryEntity.class);
+
+        when(productRepository.existsBySku("SKU-005"))
+                .thenReturn(false);
+
+        when(productMapper.toEntity(request))
+                .thenReturn(product);
+
+        when(categoryRepository.findByNameIgnoreCase("OTROS"))
+                .thenReturn(Optional.of(inactiveCategory));
+
+        when(inactiveCategory.isActive()).thenReturn(false);
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.create(request)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verifyNoInteractions(stockMovementMapper);
+        verifyNoInteractions(stockMovementRepository);
+    }
+
+    // ---------------------------------------------------------
+    // FIND BY ID
+    // ---------------------------------------------------------
+
+    @Test
+    void findById_shouldReturnProductWhenItExists() {
         when(productRepository.findById(productId))
                 .thenReturn(Optional.of(product));
 
-        when(productMapper.toResponse(product))
-                .thenReturn(expectedResponse);
+        ProductResponse result = productService.findById(productId);
 
-        ProductResponse response = productService.findById(productId);
-
-        assertSame(expectedResponse, response);
-
-        verify(productRepository).findById(productId);
+        assertSame(response, result);
+        verify(productMapper).toResponse(product);
     }
 
     @Test
@@ -293,68 +388,252 @@ class ProductServiceImplTest {
                 .toResponse(any(ProductEntity.class));
     }
 
+    // ---------------------------------------------------------
+    // SEARCH
+    // ---------------------------------------------------------
+
+    @Test
+    void search_shouldReturnMappedPage() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        Page<ProductEntity> productPage =
+                new PageImpl<>(List.of(product), pageable, 1);
+
+        when(productRepository.search(
+                "teclado",
+                categoryId,
+                ProductStatus.ACTIVE,
+                pageable
+        )).thenReturn(productPage);
+
+        Page<ProductResponse> result = productService.search(
+                "teclado",
+                categoryId,
+                ProductStatus.ACTIVE,
+                pageable
+        );
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1, result.getContent().size());
+        assertSame(response, result.getContent().get(0));
+
+        verify(productRepository).search(
+                "teclado",
+                categoryId,
+                ProductStatus.ACTIVE,
+                pageable
+        );
+
+        verify(productMapper).toResponse(product);
+    }
+
+    @Test
+    void search_shouldReturnEmptyPageWhenThereAreNoResults() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        Page<ProductEntity> emptyPage = Page.empty(pageable);
+
+        when(productRepository.search(
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(pageable)
+        )).thenReturn(emptyPage);
+
+        Page<ProductResponse> result = productService.search(
+                null,
+                null,
+                null,
+                pageable
+        );
+
+        assertTrue(result.isEmpty());
+        assertEquals(0, result.getTotalElements());
+
+        verify(productRepository).search(
+                null,
+                null,
+                null,
+                pageable
+        );
+
+        verifyNoInteractions(productMapper);
+    }
+
+    // ---------------------------------------------------------
+    // UPDATE
+    // ---------------------------------------------------------
+
+    @Test
+    void update_shouldUpdateAndReturnProduct() {
+        ProductUpdateRequest request = mock(ProductUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        ProductResponse result = productService.update(productId, request);
+
+        assertSame(response, result);
+
+        verify(productMapper).updateEntity(product, request);
+        verify(productRepository).save(product);
+        verify(productMapper).toResponse(product);
+    }
+
+    @Test
+    void update_shouldThrowWhenProductDoesNotExist() {
+        ProductUpdateRequest request = mock(ProductUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.update(productId, request)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verify(productMapper, never()).updateEntity(
+                any(ProductEntity.class),
+                any(ProductUpdateRequest.class)
+        );
+    }
+
+    // ---------------------------------------------------------
+    // UPDATE STATUS
+    // ---------------------------------------------------------
+
+    @Test
+    void updateStatus_shouldChangeProductStatus() {
+        ProductStatusUpdateRequest request =
+                mock(ProductStatusUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        when(request.status()).thenReturn(ProductStatus.ACTIVE);
+
+        ProductResponse result =
+                productService.updateStatus(productId, request);
+
+        assertSame(response, result);
+
+        verify(product).setStatus(ProductStatus.ACTIVE);
+        verify(productRepository).save(product);
+        verify(productMapper).toResponse(product);
+    }
+
+    @Test
+    void updateStatus_shouldThrowWhenProductDoesNotExist() {
+        ProductStatusUpdateRequest request =
+                mock(ProductStatusUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updateStatus(productId, request)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verify(product, never()).setStatus(any(ProductStatus.class));
+    }
+
+    // ---------------------------------------------------------
+    // UPDATE PRICE
+    // ---------------------------------------------------------
+
     @Test
     void updatePrice_shouldSaveProductAndPriceHistory() {
-        ProductEntity product = mock(ProductEntity.class);
-        ProductResponse expectedResponse = mock(ProductResponse.class);
-        PriceHistoryEntity history = mock(PriceHistoryEntity.class);
-
         ProductPriceUpdateRequest request =
                 mock(ProductPriceUpdateRequest.class);
 
         BigDecimal previousPrice = new BigDecimal("10000");
         BigDecimal newPrice = new BigDecimal("12000");
 
-        when(request.price()).thenReturn(newPrice);
-        when(request.reason()).thenReturn("Actualización de precio");
+        mockPriceHistoryMapper();
 
         when(productRepository.findById(productId))
                 .thenReturn(Optional.of(product));
 
         when(product.getPrice()).thenReturn(previousPrice);
         when(product.getId()).thenReturn(productId);
+        when(request.price()).thenReturn(newPrice);
+        when(request.reason()).thenReturn("Ajuste de precio");
 
-        when(productRepository.save(product))
-                .thenReturn(product);
-
-        when(priceHistoryMapper.toEntity(
-                productId,
-                previousPrice,
-                newPrice,
-                "Actualización de precio",
-                correlationId
-        )).thenReturn(history);
-
-        when(productMapper.toResponse(product))
-                .thenReturn(expectedResponse);
-
-        ProductResponse response =
+        ProductResponse result =
                 productService.updatePrice(productId, request);
 
-        assertSame(expectedResponse, response);
+        assertSame(response, result);
 
         verify(product).setPrice(newPrice);
         verify(productRepository).save(product);
-        verify(priceHistoryRepository).save(history);
+
+        verify(priceHistoryMapper).toEntity(
+                productId,
+                previousPrice,
+                newPrice,
+                "Ajuste de precio",
+                correlationId
+        );
+
+        verify(priceHistoryRepository)
+                .save(any(PriceHistoryEntity.class));
+
+        verify(productMapper).toResponse(product);
     }
 
     @Test
-    void updatePrice_shouldThrowWhenPriceDoesNotChange() {
-        ProductEntity product = mock(ProductEntity.class);
-
+    void updatePrice_shouldAllowChangeToLowerPrice() {
         ProductPriceUpdateRequest request =
                 mock(ProductPriceUpdateRequest.class);
 
-        BigDecimal currentPrice = new BigDecimal("10000");
+        BigDecimal previousPrice = new BigDecimal("20000");
+        BigDecimal newPrice = new BigDecimal("15000");
 
-        when(request.price())
-                .thenReturn(new BigDecimal("10000.00"));
+        mockPriceHistoryMapper();
 
         when(productRepository.findById(productId))
                 .thenReturn(Optional.of(product));
 
-        when(product.getPrice())
-                .thenReturn(currentPrice);
+        when(product.getPrice()).thenReturn(previousPrice);
+        when(product.getId()).thenReturn(productId);
+        when(request.price()).thenReturn(newPrice);
+        when(request.reason()).thenReturn("Descuento");
+
+        ProductResponse result =
+                productService.updatePrice(productId, request);
+
+        assertSame(response, result);
+
+        verify(product).setPrice(newPrice);
+        verify(productRepository).save(product);
+
+        verify(priceHistoryMapper).toEntity(
+                productId,
+                previousPrice,
+                newPrice,
+                "Descuento",
+                correlationId
+        );
+
+        verify(priceHistoryRepository)
+                .save(any(PriceHistoryEntity.class));
+    }
+
+    @Test
+    void updatePrice_shouldThrowWhenPriceDoesNotChange() {
+        ProductPriceUpdateRequest request =
+                mock(ProductPriceUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        when(product.getPrice()).thenReturn(new BigDecimal("10000"));
+        when(request.price()).thenReturn(new BigDecimal("10000.00"));
 
         assertThrows(
                 InvalidOperationException.class,
@@ -364,72 +643,160 @@ class ProductServiceImplTest {
         verify(productRepository, never())
                 .save(any(ProductEntity.class));
 
+        verifyNoInteractions(priceHistoryMapper);
         verifyNoInteractions(priceHistoryRepository);
     }
 
     @Test
-    void updateStock_shouldIncreaseStockAndRegisterMovement() {
-        ProductEntity product = mock(ProductEntity.class);
-        ProductResponse expectedResponse = mock(ProductResponse.class);
-        StockMovementEntity movement = mock(StockMovementEntity.class);
+    void updatePrice_shouldThrowWhenProductDoesNotExist() {
+        ProductPriceUpdateRequest request =
+                mock(ProductPriceUpdateRequest.class);
 
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updatePrice(productId, request)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verifyNoInteractions(priceHistoryMapper);
+        verifyNoInteractions(priceHistoryRepository);
+    }
+
+    // ---------------------------------------------------------
+    // UPDATE STOCK
+    // ---------------------------------------------------------
+
+    @Test
+    void updateStock_shouldIncreaseStockAndRegisterMovement() {
         ProductStockUpdateRequest request =
                 mock(ProductStockUpdateRequest.class);
 
-        when(request.operation())
-                .thenReturn(StockAdjustmentOperation.INCREASE);
-
-        when(request.quantity()).thenReturn(5);
-        when(request.reason()).thenReturn("Ajuste de inventario");
+        mockStockMovementMapper();
 
         when(productRepository.findById(productId))
                 .thenReturn(Optional.of(product));
 
         when(product.getStock()).thenReturn(10);
         when(product.getId()).thenReturn(productId);
+        when(request.operation())
+                .thenReturn(StockAdjustmentOperation.INCREASE);
+        when(request.quantity()).thenReturn(5);
+        when(request.reason()).thenReturn("Reposición manual");
 
-        when(productRepository.save(product))
-                .thenReturn(product);
+        ProductResponse result =
+                productService.updateStock(productId, request);
 
-        when(stockMovementMapper.toEntity(
+        assertSame(response, result);
+
+        verify(product).setStock(15);
+        verify(productRepository).save(product);
+
+        verify(stockMovementMapper).toEntity(
                 productId,
                 StockMovementType.ADJUSTMENT,
                 5,
                 10,
                 15,
-                "Ajuste de inventario",
+                "Reposición manual",
                 correlationId
-        )).thenReturn(movement);
+        );
 
-        when(productMapper.toResponse(product))
-                .thenReturn(expectedResponse);
-
-        ProductResponse response =
-                productService.updateStock(productId, request);
-
-        assertSame(expectedResponse, response);
-
-        verify(product).setStock(15);
-        verify(productRepository).save(product);
-        verify(stockMovementRepository).save(movement);
+        verify(stockMovementRepository)
+                .save(any(StockMovementEntity.class));
     }
 
     @Test
-    void updateStock_shouldThrowWhenStockIsInsufficient() {
-        ProductEntity product = mock(ProductEntity.class);
-
+    void updateStock_shouldDecreaseStockAndRegisterMovement() {
         ProductStockUpdateRequest request =
                 mock(ProductStockUpdateRequest.class);
 
-        when(request.operation())
-                .thenReturn(StockAdjustmentOperation.DECREASE);
-
-        when(request.quantity()).thenReturn(15);
+        mockStockMovementMapper();
 
         when(productRepository.findById(productId))
                 .thenReturn(Optional.of(product));
 
         when(product.getStock()).thenReturn(10);
+        when(product.getId()).thenReturn(productId);
+        when(request.operation())
+                .thenReturn(StockAdjustmentOperation.DECREASE);
+        when(request.quantity()).thenReturn(4);
+        when(request.reason()).thenReturn("Ajuste de inventario");
+
+        ProductResponse result =
+                productService.updateStock(productId, request);
+
+        assertSame(response, result);
+
+        verify(product).setStock(6);
+        verify(productRepository).save(product);
+
+        verify(stockMovementMapper).toEntity(
+                productId,
+                StockMovementType.ADJUSTMENT,
+                4,
+                10,
+                6,
+                "Ajuste de inventario",
+                correlationId
+        );
+
+        verify(stockMovementRepository)
+                .save(any(StockMovementEntity.class));
+    }
+
+    @Test
+    void updateStock_shouldAllowDecreasingStockToZero() {
+        ProductStockUpdateRequest request =
+                mock(ProductStockUpdateRequest.class);
+
+        mockStockMovementMapper();
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        when(product.getStock()).thenReturn(5);
+        when(product.getId()).thenReturn(productId);
+        when(request.operation())
+                .thenReturn(StockAdjustmentOperation.DECREASE);
+        when(request.quantity()).thenReturn(5);
+        when(request.reason()).thenReturn("Agotar stock");
+
+        productService.updateStock(productId, request);
+
+        verify(product).setStock(0);
+        verify(productRepository).save(product);
+
+        verify(stockMovementMapper).toEntity(
+                productId,
+                StockMovementType.ADJUSTMENT,
+                5,
+                5,
+                0,
+                "Agotar stock",
+                correlationId
+        );
+
+        verify(stockMovementRepository)
+                .save(any(StockMovementEntity.class));
+    }
+
+    @Test
+    void updateStock_shouldThrowWhenStockIsInsufficient() {
+        ProductStockUpdateRequest request =
+                mock(ProductStockUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        when(product.getStock()).thenReturn(3);
+        when(request.operation())
+                .thenReturn(StockAdjustmentOperation.DECREASE);
+        when(request.quantity()).thenReturn(5);
 
         assertThrows(
                 InsufficientStockException.class,
@@ -439,50 +806,124 @@ class ProductServiceImplTest {
         verify(productRepository, never())
                 .save(any(ProductEntity.class));
 
+        verifyNoInteractions(stockMovementMapper);
         verifyNoInteractions(stockMovementRepository);
     }
 
     @Test
+    void updateStock_shouldThrowWhenProductDoesNotExist() {
+        ProductStockUpdateRequest request =
+                mock(ProductStockUpdateRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updateStock(productId, request)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verifyNoInteractions(stockMovementMapper);
+        verifyNoInteractions(stockMovementRepository);
+    }
+
+    // ---------------------------------------------------------
+    // RESTOCK
+    // ---------------------------------------------------------
+
+    @Test
     void restock_shouldIncreaseStockAndRegisterMovement() {
-        ProductEntity product = mock(ProductEntity.class);
-        ProductResponse expectedResponse = mock(ProductResponse.class);
-        StockMovementEntity movement = mock(StockMovementEntity.class);
+        ProductRestockRequest request = mock(ProductRestockRequest.class);
 
-        ProductRestockRequest request =
-                mock(ProductRestockRequest.class);
-
-        when(request.quantity()).thenReturn(8);
-        when(request.reason()).thenReturn("Reposición de mercadería");
+        mockStockMovementMapper();
 
         when(productRepository.findById(productId))
                 .thenReturn(Optional.of(product));
 
         when(product.getStock()).thenReturn(10);
         when(product.getId()).thenReturn(productId);
+        when(request.quantity()).thenReturn(20);
+        when(request.reason()).thenReturn("Reposición de proveedor");
 
-        when(productRepository.save(product))
-                .thenReturn(product);
-
-        when(stockMovementMapper.toEntity(
-                productId,
-                StockMovementType.RESTOCK,
-                8,
-                10,
-                18,
-                "Reposición de mercadería",
-                correlationId
-        )).thenReturn(movement);
-
-        when(productMapper.toResponse(product))
-                .thenReturn(expectedResponse);
-
-        ProductResponse response =
+        ProductResponse result =
                 productService.restock(productId, request);
 
-        assertSame(expectedResponse, response);
+        assertSame(response, result);
 
-        verify(product).setStock(18);
+        verify(product).setStock(30);
         verify(productRepository).save(product);
-        verify(stockMovementRepository).save(movement);
+
+        verify(stockMovementMapper).toEntity(
+                productId,
+                StockMovementType.RESTOCK,
+                20,
+                10,
+                30,
+                "Reposición de proveedor",
+                correlationId
+        );
+
+        verify(stockMovementRepository)
+                .save(any(StockMovementEntity.class));
+    }
+
+    @Test
+    void restock_shouldThrowWhenProductDoesNotExist() {
+        ProductRestockRequest request = mock(ProductRestockRequest.class);
+
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.restock(productId, request)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verifyNoInteractions(stockMovementMapper);
+        verifyNoInteractions(stockMovementRepository);
+    }
+
+    // ---------------------------------------------------------
+    // DELETE
+    // ---------------------------------------------------------
+
+    @Test
+    void delete_shouldMarkProductAsInactive() {
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        productService.delete(productId);
+
+        verify(product).setStatus(ProductStatus.INACTIVE);
+        verify(productRepository).save(product);
+
+        verify(productMapper, never())
+                .toResponse(any(ProductEntity.class));
+
+        verifyNoInteractions(priceHistoryRepository);
+        verifyNoInteractions(stockMovementRepository);
+    }
+
+    @Test
+    void delete_shouldThrowWhenProductDoesNotExist() {
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.delete(productId)
+        );
+
+        verify(productRepository, never())
+                .save(any(ProductEntity.class));
+
+        verify(product, never())
+                .setStatus(any(ProductStatus.class));
     }
 }
