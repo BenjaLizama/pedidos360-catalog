@@ -1,4 +1,4 @@
-package cl.pedidos360.ms_catalog.config;
+package cl.pedidos360.ms_catalog.data;
 
 import cl.pedidos360.ms_catalog.entity.CategoryEntity;
 import cl.pedidos360.ms_catalog.repository.CategoryRepository;

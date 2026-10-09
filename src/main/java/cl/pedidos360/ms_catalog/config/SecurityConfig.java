@@ -1,6 +1,7 @@
 package cl.pedidos360.ms_catalog.config;
 
 import cl.pedidos360.ms_catalog.security.JwtAuthenticationConverter;
+import cl.pedidos360.ms_catalog.security.JwtProperties;
 import cl.pedidos360.ms_catalog.security.SecurityAccessDeniedHandler;
 import cl.pedidos360.ms_catalog.security.SecurityAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;

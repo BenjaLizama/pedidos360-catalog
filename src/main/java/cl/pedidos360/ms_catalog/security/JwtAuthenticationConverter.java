@@ -1,6 +1,5 @@
 package cl.pedidos360.ms_catalog.security;
 
-import cl.pedidos360.ms_catalog.config.JwtProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;

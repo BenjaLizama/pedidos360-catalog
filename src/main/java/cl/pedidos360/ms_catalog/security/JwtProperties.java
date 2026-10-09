@@ -1,4 +1,4 @@
-package cl.pedidos360.ms_catalog.config;
+package cl.pedidos360.ms_catalog.security;
 
 import lombok.Getter;
 import lombok.Setter;
