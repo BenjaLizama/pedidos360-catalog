@@ -24,6 +24,10 @@ public record ProductCreateRequest(
 
         @NotBlank(message = "El SKU es obligatorio.")
         @Size(max = 50, message = "El SKU no puede superar los 50 caracteres.")
+        @Pattern(
+                regexp = "^[a-zA-Z0-9_-]+$",
+                message = "El SKU solo puede contener letras, números, guiones y guiones bajos."
+        )
         String sku,
 
         @NotBlank(message = "El nombre es obligatorio.")
