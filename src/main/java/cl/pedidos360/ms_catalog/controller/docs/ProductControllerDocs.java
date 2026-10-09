@@ -1,11 +1,6 @@
 package cl.pedidos360.ms_catalog.controller.docs;
 
-import cl.pedidos360.ms_catalog.dto.request.ProductCreateRequest;
-import cl.pedidos360.ms_catalog.dto.request.ProductPriceUpdateRequest;
-import cl.pedidos360.ms_catalog.dto.request.ProductRestockRequest;
-import cl.pedidos360.ms_catalog.dto.request.ProductStatusUpdateRequest;
-import cl.pedidos360.ms_catalog.dto.request.ProductStockUpdateRequest;
-import cl.pedidos360.ms_catalog.dto.request.ProductUpdateRequest;
+import cl.pedidos360.ms_catalog.dto.request.*;
 import cl.pedidos360.ms_catalog.dto.response.ProductResponse;
 import cl.pedidos360.ms_catalog.dto.response.StandardResponse;
 import cl.pedidos360.ms_catalog.enums.ProductStatus;
