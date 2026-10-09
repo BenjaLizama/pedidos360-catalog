@@ -21,7 +21,8 @@ import java.util.UUID;
  * @param description descripción opcional del producto
  * @param price precio inicial del producto
  * @param stock stock inicial disponible
- * @param categoryId identificador de la categoría asociada al producto
+ * @param categoryId identificador de la categoría asociada al producto.
+ *                   Si no se especifica, se asignará la categoría OTROS.
  */
 public record ProductCreateRequest(
 
@@ -48,7 +49,6 @@ public record ProductCreateRequest(
         @PositiveOrZero(message = "El stock no puede ser negativo.")
         Integer stock,
 
-        @NotNull(message = "La categoría es obligatoria.")
         UUID categoryId
 ) {
 }

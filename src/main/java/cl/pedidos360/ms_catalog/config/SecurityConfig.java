@@ -60,9 +60,10 @@ public class SecurityConfig {
      * protegidas.</p>
      */
     private static final String[] PUBLIC_CATALOG_URL = {
-            "/api/v1/catalog/products",
-            "/api/v1/catalog/products/**",
-            "/api/v1/categories"
+            "/api/v1/products",
+            "/api/v1/products/**",
+            "/api/v1/categories",
+            "/api/v1/categories/*"
     };
 
     /**

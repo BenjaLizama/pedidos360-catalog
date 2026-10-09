@@ -2,6 +2,7 @@ package cl.pedidos360.ms_catalog.service.impl;
 
 import cl.pedidos360.ms_catalog.dto.request.*;
 import cl.pedidos360.ms_catalog.dto.response.ProductResponse;
+import cl.pedidos360.ms_catalog.entity.CategoryEntity;
 import cl.pedidos360.ms_catalog.entity.PriceHistoryEntity;
 import cl.pedidos360.ms_catalog.entity.ProductEntity;
 import cl.pedidos360.ms_catalog.entity.StockMovementEntity;
@@ -16,6 +17,7 @@ import cl.pedidos360.ms_catalog.mapper.PriceHistoryMapper;
 import cl.pedidos360.ms_catalog.mapper.ProductMapper;
 import cl.pedidos360.ms_catalog.mapper.StockMovementMapper;
 import cl.pedidos360.ms_catalog.observability.CorrelationIdProvider;
+import cl.pedidos360.ms_catalog.repository.CategoryRepository;
 import cl.pedidos360.ms_catalog.repository.PriceHistoryRepository;
 import cl.pedidos360.ms_catalog.repository.ProductRepository;
 import cl.pedidos360.ms_catalog.repository.StockMovementRepository;
@@ -55,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final StockMovementRepository stockMovementRepository;
+    private final CategoryRepository categoryRepository;
 
     private final ProductMapper productMapper;
     private final StockMovementMapper stockMovementMapper;
@@ -93,6 +96,20 @@ public class ProductServiceImpl implements ProductService {
         }
 
         ProductEntity product = productMapper.toEntity(request);
+        UUID categoryId = request.categoryId();
+
+        if (categoryId == null) {
+            categoryId = categoryRepository
+                    .findByNameIgnoreCase("OTROS")
+                    .filter(CategoryEntity::isActive)
+                    .map(CategoryEntity::getId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "No se encontró una categoría activa por defecto: OTROS"
+                    ));
+        }
+
+        product.setCategoryId(categoryId);
+
         ProductEntity savedProduct = productRepository.save(product);
 
         if (savedProduct.getStock() > 0) {
