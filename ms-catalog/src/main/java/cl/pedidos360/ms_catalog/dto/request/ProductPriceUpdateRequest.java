@@ -1,7 +1,9 @@
 package cl.pedidos360.ms_catalog.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -21,6 +23,8 @@ public record ProductPriceUpdateRequest(
         @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a cero.")
         BigDecimal price,
 
+        @NotBlank(message = "La razón es obligatoria.")
+        @Size(max = 300, message = "El motivo no puede superar los 300 caracteres.")
         String reason
 ) {
 }
