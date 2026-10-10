@@ -79,9 +79,68 @@ services:
     networks:
       - catalog-network
 
+  postgres-orders:
+    image: postgres:16
+    container_name: pedidos360-postgres-orders
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pedidos360_orders
+      POSTGRES_USER: ${ORDERS_DATABASE_USERNAME:-orders_user}
+      POSTGRES_PASSWORD: ${ORDERS_DATABASE_PASSWORD:-orders_dev_password}
+    ports:
+      - "${ORDERS_POSTGRES_HOST_PORT:-5434}:5432"
+    volumes:
+      - postgres_orders_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - catalog-network
+
+  ms-orders:
+    build:
+      context: ./ms-orders
+      dockerfile: Dockerfile
+    container_name: pedidos360-ms-orders
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SERVER_PORT: 8084
+      ORDERS_DATABASE_URL: jdbc:postgresql://postgres-orders:5432/pedidos360_orders
+      ORDERS_DATABASE_USERNAME: ${ORDERS_DATABASE_USERNAME:-orders_user}
+      ORDERS_DATABASE_PASSWORD: ${ORDERS_DATABASE_PASSWORD:-orders_dev_password}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:?Define KEYCLOAK_ISSUER_URI en .env}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      AWS_SQS_ENDPOINT: http://localstack:4566
+      ORDER_CREATED_QUEUE: ${ORDER_CREATED_QUEUE:-orders-created}
+      ORDER_STATUS_UPDATED_QUEUE: ${ORDER_STATUS_UPDATED_QUEUE:-orders-status-updated}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Define STRIPE_SECRET_KEY en .env}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:?Define STRIPE_PUBLISHABLE_KEY en .env}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?Define STRIPE_WEBHOOK_SECRET en .env}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-clp}
+    ports:
+      - "${ORDERS_HOST_PORT:-8084}:8084"
+    depends_on:
+      postgres-orders:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - catalog-network
+
 volumes:
   mongo_catalog_data:
   localstack_data:
+  postgres_orders_data:
 
 networks:
   catalog-network:
