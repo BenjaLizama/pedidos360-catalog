@@ -7,7 +7,7 @@ spring:
       enabled: ALWAYS
 
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/pedidos360_catalog?replicaSet=rs0}
+    uri: ${MONGODB_URI:mongodb://localhost:27017/pedidos360_catalog?directConnection=true}
     representation:
       uuid: standard
 
